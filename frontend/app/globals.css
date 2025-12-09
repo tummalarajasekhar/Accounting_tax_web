@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #0f172a; /* Dark Navy */
+  --accent: #2563eb; /* Royal Blue */
+  --background: #ffffff;
+  --foreground: #1e293b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
