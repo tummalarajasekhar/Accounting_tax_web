@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from 'react';
 import {
-    CheckCircle, Globe, FileText, Calculator, TrendingUp,
-    ArrowRight, ShieldCheck, Landmark, DollarSign,
-    Mail, Phone, Send, Zap, Lock, Server, Clock,
-    PieChart, HardDrive, MapPin, Shield, Gift, Hash
+    CheckCircle, Globe, Calculator, 
+    ShieldCheck, Mail, Phone, Zap, Clock,
+    PieChart, HardDrive, MapPin, Award, 
+    Video, CreditCard, Star, FileText, 
+    User, ChevronDown, ChevronUp, Lock
 } from 'lucide-react';
 
+// --- DATA CONFIGURATION ---
 const TAX_DATA = {
     Canada: {
         name: "Canada",
@@ -52,22 +54,57 @@ const TAX_DATA = {
     }
 };
 
+const FAQ_ITEMS = [
+    { q: "Is my data shared with government agencies?", a: "No. We only submit the final return after your explicit approval. Your draft data is encrypted." },
+    { q: "What if I get audited?", a: "Our 'Audit Defense' guarantee means we represent you for free if any questions arise from our filing." },
+    { q: "Can I file for previous years?", a: "Yes, our experts can access portals for up to 7 years of back-filing for refunds." },
+];
+
 export default function TaxPage() {
     const [country, setCountry] = useState<keyof typeof TAX_DATA>('Canada');
     const [income, setIncome] = useState<number>(75000);
     const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+    const [openFaq, setOpenFaq] = useState<number | null>(0);
+    
+    // --- BOOKING STATE ---
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [bookDate, setBookDate] = useState<string | null>(null);
+    const [bookTime, setBookTime] = useState<string | null>(null);
+    const [bookEmail, setBookEmail] = useState('');
+    const [bookState, setBookState] = useState('');
+    const [bookStatus, setBookStatus] = useState<'idle' | 'sending' | 'booked' | 'error'>('idle');
 
+    // --- CONTACT FORM STATE ---
     const [pincode, setPincode] = useState('');
     const [stateManual, setStateManual] = useState('');
-    const [referral, setReferral] = useState('');
+    const [referral, setReferral] = useState(''); 
     const [phone, setPhone] = useState('');
     const [isLocLoading, setIsLocLoading] = useState(false);
 
     const active = TAX_DATA[country];
 
+    // --- 1. DYNAMIC DATE GENERATOR ---
     useEffect(() => {
+        const generateNextDays = () => {
+            const dates = [];
+            const today = new Date();
+            for (let i = 1; i <= 4; i++) {
+                const nextDay = new Date(today);
+                nextDay.setDate(today.getDate() + i);
+                const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric' };
+                dates.push(nextDay.toLocaleDateString('en-US', options));
+            }
+            setAvailableDates(dates);
+        };
+        generateNextDays();
+    }, []);
+
+    // --- 2. LOCATION AUTO-LOOKUP LOGIC ---
+    useEffect(() => {
+        setStateManual(''); 
         const fetchLocation = async () => {
             const cleanPin = pincode.replace(/\s/g, "").toUpperCase();
+            
             const isCanadaTrigger = country === 'Canada' && cleanPin.length === 3;
             const isUSATrigger = country === 'USA' && cleanPin.length === 5;
             const isIndiaTrigger = country === 'India' && cleanPin.length === 6;
@@ -75,61 +112,96 @@ export default function TaxPage() {
             if (isCanadaTrigger || isUSATrigger || isIndiaTrigger) {
                 setIsLocLoading(true);
                 try {
-                    let url = country === 'India'
-                        ? `https://api.postalpincode.in/pincode/${cleanPin}`
+                    let url = country === 'India' 
+                        ? `https://api.postalpincode.in/pincode/${cleanPin}` 
                         : `https://api.zippopotam.us/${active.apiCode}/${cleanPin}`;
-
+                    
                     const res = await fetch(url);
                     const data = await res.json();
-
+                    
                     if (country === 'India' && data[0].Status === "Success") {
                         setStateManual(data[0].PostOffice[0].State);
                     } else if (country !== 'India' && res.ok) {
                         setStateManual(data.places[0].state);
                     }
-                } catch (e) { console.error("Location lookup failed"); }
-                finally { setIsLocLoading(false); }
+                } catch (e) { 
+                    console.error("Location lookup failed"); 
+                } finally { 
+                    setIsLocLoading(false); 
+                }
             }
         };
-        fetchLocation();
-    }, [pincode, country]);
+        if (pincode.length >= 3) fetchLocation();
+    }, [pincode, country, active.apiCode]);
 
+    // --- 3. HANDLER: BOOKING SUBMISSION ---
+    const handleBooking = async () => {
+        if (!bookDate || !bookTime || !bookEmail || !bookState) return;
+        setBookStatus('sending');
+        try {
+            const res = await fetch('/api/book-demo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: bookDate, time: bookTime, email: bookEmail, state: bookState, country: country })
+            });
+            if (res.ok) setBookStatus('booked');
+            else setBookStatus('error');
+        } catch (err) { setBookStatus('error'); }
+    };
+
+    // --- 4. HANDLER: CONTACT FORM ---
     const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setFormStatus('sending');
-        const formData = new FormData(e.currentTarget);
+        if (!stateManual) return; // Block submission if no state
 
-        const data = {
+        setFormStatus('sending');
+        
+        const formData = new FormData(e.currentTarget);
+        const payload = {
             name: formData.get('name'),
             email: formData.get('email'),
-            phone: `${active.phoneCode} ${phone}`, // Combines country code with number
+            phone: `${active.phoneCode} ${phone}`,
             message: formData.get('message'),
             country: country,
             pincode: pincode,
             state: stateManual,
             referral: referral,
-            subject: formData.get('subject')
         };
 
         try {
-            const res = await fetch('https://rajabackend.srikrishnatechhub.com/request-callback', {
+            const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
-            if (res.ok) setFormStatus('success'); else setFormStatus('error');
-        } catch { setFormStatus('error'); }
+
+            if (res.ok) {
+                setFormStatus('success');
+                setPhone(''); setPincode(''); setStateManual(''); setReferral('');
+                (e.target as HTMLFormElement).reset(); 
+            } else { setFormStatus('error'); }
+        } catch (err) { setFormStatus('error'); }
     };
 
     return (
         <div className="min-h-screen bg-white text-slate-900 selection:bg-red-100">
+            
+            {/* LIVE TICKER */}
+            <div className="bg-slate-900 text-white text-xs font-bold py-2 text-center overflow-hidden">
+                <div className="animate-pulse flex justify-center items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
+                    LIVE: 247 Tax Returns filed in the last hour.
+                </div>
+            </div>
+
+            {/* NAVIGATION */}
             <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 py-4 px-6">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="text-2xl font-black italic tracking-tighter">TaxGlobal.ai</div>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                        {Object.keys(TAX_DATA).map((c) => (
-                            <button key={c} onClick={() => { setCountry(c as any); setPincode(''); setStateManual(''); setPhone(''); }}
-                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${country === c ? `${active.color} text-white shadow-md` : "text-slate-500 hover:text-slate-800"}`}>
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="text-2xl font-black italic tracking-tighter">TaxGlobal</div>
+                    <div className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full">
+                        {(Object.keys(TAX_DATA) as Array<keyof typeof TAX_DATA>).map((c) => (
+                            <button key={c} onClick={() => { setCountry(c); setPincode(''); setStateManual(''); setPhone(''); setFormStatus('idle'); }}
+                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${country === c ? `${active.color} text-white shadow-md` : "text-slate-500 hover:text-slate-800"}`}>
                                 {c}
                             </button>
                         ))}
@@ -137,16 +209,31 @@ export default function TaxPage() {
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto px-6 py-12 space-y-24">
-
-                {/* Hero & Estimate */}
+            <main className="max-w-7xl mx-auto px-6 py-12 space-y-32">
+                
+                {/* HERO SECTION */}
                 <section className="grid lg:grid-cols-2 gap-12 items-center">
-                    <div className="space-y-6">
-                        <h1 className="text-7xl font-black leading-tight tracking-tighter">
+                    <div className="space-y-6 text-center lg:text-left">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${active.color} bg-opacity-10 ${active.text}`}>
+                            <Star size={12} /> #1 Rated in {active.name}
+                        </div>
+                        {/* Responsive Font Size */}
+                        <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tighter">
                             The {active.name} <br /><span className={active.text}>Tax Advantage.</span>
                         </h1>
-                        <p className="text-xl text-slate-500 max-w-lg leading-relaxed">Smart 2026 filing system. Automatically detects your provincial/state benefits based on location.</p>
+                        <p className="text-lg md:text-xl text-slate-500 max-w-lg leading-relaxed mx-auto lg:mx-0">
+                            Smart 2026 filing system. Automatically detects your provincial/state benefits based on location.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center lg:justify-start">
+                            <button onClick={() => document.getElementById('booking')?.scrollIntoView({behavior: 'smooth'})} className={`px-8 py-4 ${active.color} text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-all`}>
+                                Book Expert
+                            </button>
+                            <button onClick={() => document.getElementById('callback')?.scrollIntoView({behavior: 'smooth'})} className="px-8 py-4 bg-white border-2 border-slate-200 text-slate-900 font-bold rounded-xl hover:bg-slate-50 transition-all">
+                                Contact Us
+                            </button>
+                        </div>
                     </div>
+                    {/* CALCULATOR */}
                     <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-slate-100 shadow-xl">
                         <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2"><Calculator size={18} /> Instant Savings Estimate</h3>
                         <input type="number" value={income} onChange={(e) => setIncome(Number(e.target.value))}
@@ -158,118 +245,262 @@ export default function TaxPage() {
                     </div>
                 </section>
 
-                {/* Feature Map */}
-                <section className="grid md:grid-cols-3 gap-8">
-                    <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] flex flex-col justify-between">
-                        <h3 className="text-3xl font-bold italic">Secure. Fast. Trusted.</h3>
-                        <p className="text-slate-400">Multi-factor encryption for your {active.name} tax documents.</p>
+                {/* HOW IT WORKS */}
+                <section>
+                    <div className="text-center mb-16 space-y-4">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter">Zero Friction Filing.</h2>
+                        <p className="text-slate-500 text-lg">From chaotic receipts to a filed return in 3 simple steps.</p>
                     </div>
-                    {active.benefits.map((b, i) => (
-                        <div key={i} className="bg-white p-10 rounded-[2.5rem] border-2 border-slate-50 shadow-sm hover:shadow-lg transition-all">
-                            <div className={`${active.text} mb-6 p-4 bg-slate-50 rounded-2xl w-fit`}>{b.icon}</div>
-                            <h4 className="text-2xl font-bold mb-2">{b.title}</h4>
-                            <p className="text-slate-500 leading-relaxed">{b.desc}</p>
+                    <div className="grid md:grid-cols-3 gap-8 text-center relative">
+                        <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-slate-100 -z-10"></div>
+                        <div className="bg-white p-6">
+                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
+                                <FileText size={40} />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">1. Upload Docs</h3>
+                            <p className="text-slate-500 text-sm">Snap photos of your T4/W2/Form-16. Our AI extracts the data instantly.</p>
                         </div>
-                    ))}
+                        <div className="bg-white p-6">
+                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
+                                <User size={40} />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">2. Expert Review</h3>
+                            <p className="text-slate-500 text-sm">A real human CPA reviews your file to maximize deductions.</p>
+                        </div>
+                        <div className="bg-white p-6">
+                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
+                                <CheckCircle size={40} />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">3. Filed & Done</h3>
+                            <p className="text-slate-500 text-sm">We file directly with the gov. You get the confirmation instantly.</p>
+                        </div>
+                    </div>
                 </section>
 
-                {/* Dynamic Contact Form */}
-                <section id="callback" className="bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl grid lg:grid-cols-2 gap-16 relative overflow-hidden">
+                {/* --- BOOKING WIDGET (ADDED SCROLL MARGIN) --- */}
+                <section id="booking" className="scroll-mt-32 bg-slate-900 text-white rounded-[3rem] p-8 md:p-12 overflow-hidden relative">
+                    <div className={`absolute top-0 right-0 w-96 h-96 ${active.color} opacity-20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2`}></div>
+
+                    <div className="grid lg:grid-cols-2 gap-16 relative z-10">
+                        <div className="space-y-6">
+                            <h2 className="text-4xl md:text-5xl font-black tracking-tighter">Talk to a Human.</h2>
+                            <p className="text-slate-400 text-lg md:text-xl leading-relaxed">
+                                Complex situation? Stock options? Foreign income? Schedule a free 15-minute discovery call.
+                            </p>
+                            <div className="flex items-center gap-4 text-slate-300 font-bold">
+                                <Video className={active.text} /> Online Meeting
+                                <CreditCard className={active.text} /> Free Demo
+                            </div>
+                        </div>
+
+                        {/* Booking UI */}
+                        <div className="bg-white text-slate-900 rounded-3xl p-6 md:p-8 shadow-2xl">
+                            {bookStatus === 'booked' ? (
+                                <div className="text-center py-12 animate-in zoom-in">
+                                    <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
+                                    <h3 className="text-2xl font-bold">Booking Confirmed!</h3>
+                                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-left">
+                                        <p className="text-slate-800 font-bold text-sm mb-1">📅 Next Steps:</p>
+                                        <p className="text-slate-600 text-sm">
+                                            We have received your request. To ensure security, we will email the <b>Meeting Link</b> to <span className="font-bold text-slate-900">{bookEmail}</span> exactly <span className="text-red-600 font-bold">1 hour before</span> your session.
+                                        </p>
+                                    </div>
+                                    <button onClick={() => {setBookStatus('idle'); setBookDate(null); setBookTime(null); setBookEmail(''); setBookState('')}} className="mt-6 text-sm font-bold text-blue-600 underline">Book another slot</button>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 block">1. Select Date (Available from Tomorrow)</label>
+                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                            {availableDates.map((date) => (
+                                                <button key={date} onClick={() => setBookDate(date)} className={`flex-1 py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all whitespace-nowrap ${bookDate === date ? `${active.color} border-transparent text-white` : "border-slate-100 hover:border-slate-300"}`}>{date}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {bookDate && (
+                                        <div className="animate-in slide-in-from-top-4 fade-in">
+                                            <label className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 block">2. Select Time</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {['10:00 AM', '02:00 PM', '04:30 PM'].map((time) => (
+                                                    <button key={time} onClick={() => setBookTime(time)} className={`py-3 rounded-xl border-2 font-bold text-sm transition-all ${bookTime === time ? "bg-slate-900 border-slate-900 text-white" : "border-slate-100 hover:border-slate-300"}`}>{time}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {bookDate && bookTime && (
+                                        <div className="animate-in slide-in-from-top-4 fade-in space-y-4">
+                                            <label className="text-xs font-bold uppercase text-slate-400 tracking-wider block">3. Your Details</label>
+                                            <div className="relative"><Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/><input type="email" value={bookEmail} onChange={(e) => setBookEmail(e.target.value)} placeholder="Enter your email address" className="w-full p-4 pl-12 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-slate-900 transition-colors" /></div>
+                                            <div className="relative"><MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/><input type="text" value={bookState} onChange={(e) => setBookState(e.target.value)} placeholder={country === 'India' ? "State (e.g., Delhi, Kerala)" : "State/Province (e.g., Cali, Ontario)"} className="w-full p-4 pl-12 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-slate-900 transition-colors" /></div>
+                                        </div>
+                                    )}
+                                    <button disabled={!bookDate || !bookTime || !bookEmail || !bookState || bookStatus === 'sending'} onClick={handleBooking} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] transition-transform shadow-lg">{bookStatus === 'sending' ? "Registering..." : "Confirm Booking"}</button>
+                                    {bookStatus === 'error' && <p className="text-center text-red-500 font-bold text-sm">Something went wrong. Try again.</p>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                {/* WHY US SECTION */}
+                <section className="py-12">
+                    <div className="grid md:grid-cols-3 gap-8">
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-blue-600"><ShieldCheck size={32} /></div>
+                            <h3 className="text-xl font-bold mb-3">Bank-Grade Security</h3>
+                            <p className="text-slate-500 leading-relaxed">Your data is encrypted with AES-256 bit protocols. We never share your information.</p>
+                        </div>
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-green-600"><Clock size={32} /></div>
+                            <h3 className="text-xl font-bold mb-3">Rapid Processing</h3>
+                            <p className="text-slate-500 leading-relaxed">Automated systems check for errors instantly, ensuring your filing is submitted without delays.</p>
+                        </div>
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-purple-600"><Award size={32} /></div>
+                            <h3 className="text-xl font-bold mb-3">Certified Experts</h3>
+                            <p className="text-slate-500 leading-relaxed">Reviewed by chartered accountants specific to Canadian, US, and Indian laws.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* FAQ SECTION */}
+                <section className="max-w-3xl mx-auto">
+                    <h2 className="text-3xl font-black text-center mb-8">Common Questions</h2>
+                    <div className="space-y-4">
+                        {FAQ_ITEMS.map((item, i) => (
+                            <div key={i} className="border border-slate-200 rounded-2xl overflow-hidden">
+                                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex justify-between items-center p-6 bg-slate-50 font-bold text-left hover:bg-slate-100 transition-colors">
+                                    {item.q}
+                                    {openFaq === i ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                                </button>
+                                {openFaq === i && <div className="p-6 bg-white text-slate-500 leading-relaxed animate-in slide-in-from-top-2">{item.a}</div>}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* --- CONTACT FORM SECTION (ADDED SCROLL MARGIN) --- */}
+                <section id="callback" className="scroll-mt-32 bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-2xl grid lg:grid-cols-2 gap-16 relative overflow-hidden">
                     <div className="space-y-8 relative z-10">
-                        <h2 className="text-5xl font-black italic tracking-tighter text-slate-900">Expert Review.</h2>
-                        <p className="text-xl text-slate-500 leading-relaxed">Request a callback. Your country is locked to <b>{active.name}</b>.</p>
+                        <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-slate-900">Expert Review.</h2>
+                        <p className="text-lg md:text-xl text-slate-500 leading-relaxed">Request a callback. Your country is locked to <b>{active.name}</b>.</p>
                         <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
                             <div className="flex items-center gap-4 text-slate-600 font-bold tracking-tight"><Globe className="text-blue-500" size={20} /> Region: {active.name}</div>
                             <div className="flex items-center gap-4 text-slate-600 font-bold tracking-tight"><ShieldCheck className="text-blue-500" size={20} /> AES-256 Bit Encryption</div>
                         </div>
+
+                        {/* Company Contact Display */}
+                        <div className="pt-6 border-t border-slate-100">
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Support & Inquiries</p>
+                            <div className="flex items-center gap-3 text-lg font-bold">
+                                <Mail className="text-slate-900" size={24} />
+                                <a href="mailto:support@taxglobal.com" className="hover:text-blue-600 transition-colors">support@taxglobal.com</a>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="bg-slate-50 p-10 rounded-[3rem] shadow-inner relative z-10">
+                    <div className="bg-slate-50 p-6 md:p-10 rounded-[3rem] shadow-inner relative z-10">
                         {formStatus === 'success' ? (
                             <div className="text-center py-16 animate-in fade-in zoom-in">
                                 <CheckCircle size={80} className="text-green-500 mx-auto mb-6" />
                                 <h3 className="text-3xl font-bold">Request Sent!</h3>
-                                <p className="text-slate-500 font-medium mt-2">A specialist for {stateManual || "your region"} will call you at {active.phoneCode} {phone}.</p>
+                                <p className="text-slate-500 font-medium mt-2">A specialist will reach out shortly.</p>
+                                <button onClick={() => setFormStatus('idle')} className="mt-8 text-blue-600 font-bold underline">Send another request</button>
                             </div>
                         ) : (
                             <form onSubmit={handleContactSubmit} className="space-y-5">
+                                
+                                {/* COUNTRY SELECTOR */}
+                                <div className="bg-slate-100 p-2 rounded-xl flex items-center justify-between mb-2">
+                                     <span className="text-slate-500 font-bold text-sm ml-3">I am filing for:</span>
+                                     <div className="relative">
+                                         <select 
+                                             value={country}
+                                             onChange={(e) => {
+                                                 setCountry(e.target.value as keyof typeof TAX_DATA);
+                                                 setPincode(''); 
+                                                 setStateManual(''); // Clear state on country change
+                                             }}
+                                             className="bg-white border border-slate-200 text-slate-900 font-bold py-2 px-4 pr-8 rounded-lg outline-none focus:border-slate-900 appearance-none cursor-pointer"
+                                         >
+                                             {Object.keys(TAX_DATA).map((c) => (
+                                                 <option key={c} value={c}>{c}</option>
+                                             ))}
+                                         </select>
+                                         <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                     </div>
+                                </div>
+
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <input name="name" required placeholder="Full Name" className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-medium" />
                                     <input name="email" type="email" required placeholder="Email Address" className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-medium" />
                                 </div>
 
-                                {/* Mandatory Phone Field with Auto Country Code */}
                                 <div className="relative group">
                                     <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-slate-200 pr-3 h-2/3 pointer-events-none">
                                         <Phone size={18} className="text-slate-400" />
                                         <span className="font-bold text-slate-600">{active.phoneCode}</span>
                                     </div>
-                                    <input
-                                        type="tel"
-                                        name="phone"
-                                        required
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} // Numeric only
-                                        placeholder="Phone Number (Required)"
-                                        className="w-full p-5 pl-24 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-bold tracking-widest"
-                                    />
+                                    <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} placeholder="Phone Number" className="w-full p-5 pl-24 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-bold tracking-widest" />
                                 </div>
 
-                                {/* Location Input Group */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={pincode}
-                                            onChange={(e) => setPincode(e.target.value.toUpperCase())}
-                                            placeholder={country === 'India' ? "PIN Code" : country === 'Canada' ? "3-Char Postal" : "Zip Code"}
-                                            className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-transparent focus:border-red-500 shadow-sm font-bold uppercase"
+                                        <input 
+                                            type="text" 
+                                            value={pincode} 
+                                            onChange={(e) => setPincode(e.target.value.toUpperCase())} 
+                                            placeholder={country === 'India' ? "PIN Code" : "Postal Code"} 
+                                            className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-transparent focus:border-red-500 shadow-sm font-bold uppercase" 
                                         />
                                         {isLocLoading && <div className="absolute right-4 top-5 animate-spin text-red-500"><MapPin size={20} /></div>}
                                     </div>
-                                    <input
-                                        value={stateManual}
-                                        onChange={(e) => setStateManual(e.target.value)}
-                                        placeholder="State/Province"
-                                        className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-transparent focus:border-red-500 shadow-sm font-bold"
-                                    />
+                                    
+                                    {/* --- READ-ONLY STATE FIELD --- */}
+                                    <div className="relative">
+                                        <input 
+                                            value={stateManual} 
+                                            readOnly 
+                                            placeholder="State (Verify PIN)" 
+                                            className="w-full p-5 bg-slate-100 text-slate-500 rounded-2xl outline-none border-2 border-transparent cursor-not-allowed font-bold" 
+                                        />
+                                        <Lock size={16} className="absolute right-4 top-5 text-slate-400" />
+                                    </div>
                                 </div>
 
-                                {/* Fixed Country & Optional Referral */}
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="relative">
-                                        <label className="absolute -top-6 left-2 text-[10px] font-bold text-slate-400 uppercase">Selected Country</label>
-                                        <input
-                                            readOnly
-                                            value={active.name}
-                                            className="w-full p-5 bg-slate-200/50 rounded-2xl outline-none text-slate-500 font-bold cursor-not-allowed border-2 border-slate-100"
-                                        />
-                                    </div>
-                                    <div className="relative">
-                                        <label className="absolute -top-6 left-2 text-[10px] font-bold text-slate-400 uppercase italic">Referral (Optional)</label>
-                                        <input
-                                            name="referral"
-                                            value={referral}
-                                            onChange={(e) => setReferral(e.target.value)}
-                                            placeholder="Code"
-                                            className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-dashed border-slate-200 shadow-sm font-medium"
-                                        />
-                                    </div>
-                                </div>
+                                <input 
+                                    value={referral}
+                                    onChange={(e) => setReferral(e.target.value)}
+                                    placeholder="Referral Code (Optional)"
+                                    className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-medium"
+                                />
 
                                 <textarea name="message" required rows={3} placeholder="Tell us about your tax situation..." className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500"></textarea>
 
-                                <button disabled={formStatus === 'sending'} className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl disabled:opacity-50">
-                                    {formStatus === 'sending' ? "Syncing..." : "Request Callback"}
+                                <button 
+                                    disabled={formStatus === 'sending' || !stateManual} 
+                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {formStatus === 'sending' ? "Sending..." : "Request Callback"}
                                 </button>
+                                {formStatus === 'error' && <p className="text-red-500 text-center font-bold">Failed to send. Please try again.</p>}
                             </form>
                         )}
                     </div>
                 </section>
             </main>
 
-            <footer className="py-20 text-center border-t bg-slate-50 text-slate-400 font-bold uppercase tracking-widest text-xs">
-                © 2026 GlobalTax AI. Certified Secure Filing Infrastructure.
+            <footer className="py-20 text-center border-t bg-slate-50">
+                <div className="max-w-7xl mx-auto px-6 space-y-6">
+                    <div className="text-2xl font-black italic tracking-tighter text-slate-300">TaxGlobal</div>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        © 2026 GlobalTax AI. Certified Secure Filing Infrastructure.
+                    </p>
+                    <div className="flex justify-center gap-6 text-sm text-slate-400 font-medium">
+                        <a href="#" className="hover:text-slate-600">Privacy Policy</a>
+                        <a href="#" className="hover:text-slate-600">Terms of Service</a>
+                    </div>
+                </div>
             </footer>
         </div>
     );
