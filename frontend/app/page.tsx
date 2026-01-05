@@ -5,10 +5,11 @@ import {
     ShieldCheck, Mail, Phone, Zap, Clock,
     PieChart, HardDrive, MapPin, Award, 
     Video, CreditCard, Star, FileText, 
-    User, ChevronDown, ChevronUp, Lock
+    User, ChevronDown, ChevronUp, Lock,
+    TrendingUp, Landmark, BookOpen
 } from 'lucide-react';
 
-// --- DATA CONFIGURATION ---
+// --- DYNAMIC DATA CONFIGURATION (All Content is Country-Specific) ---
 const TAX_DATA = {
     Canada: {
         name: "Canada",
@@ -18,10 +19,28 @@ const TAX_DATA = {
         text: "text-red-600",
         symbol: "$",
         standardDeduction: "$16,452",
-        timeline: ["Feb 24: Netfile Opens", "Apr 30: Deadline"],
+        // Hero Data
         benefits: [
             { title: "RRSP Room", desc: "Reduce tax with contributions.", icon: <PieChart /> },
             { title: "FHSA Access", desc: "Tax-free savings for buyers.", icon: <HardDrive /> }
+        ],
+        // Services Section
+        services: [
+            { title: "CRA Netfile Certified", desc: "Direct digital filing with the Canada Revenue Agency for instant confirmations.", icon: <ShieldCheck size={32} /> },
+            { title: "RRSP Optimization", desc: "We calculate your exact contribution room to maximize your refund.", icon: <TrendingUp size={32} /> },
+            { title: "Provincial Credits", desc: "Auto-detection of OTB, GST/HST, and Climate Action incentives.", icon: <MapPin size={32} /> }
+        ],
+        // Process Section
+        process: [
+            { title: "Upload T4/T5 Slips", desc: "Snap a photo of your employment and investment slips.", icon: <FileText size={40} /> },
+            { title: "CRA Auto-Fill", desc: "We pull existing data directly from your MyCRA account.", icon: <User size={40} /> },
+            { title: "Netfile Submit", desc: "Instant transmission to the CRA with confirmation #.", icon: <CheckCircle size={40} /> }
+        ],
+        // FAQ Section
+        faqs: [
+            { q: "Can I split pension income?", a: "Yes, we automatically optimize pension splitting with your spouse to lower your bracket." },
+            { q: "What about my TFSA?", a: "TFSA earnings are tax-free, but we ensure you haven't over-contributed to avoid penalties." },
+            { q: "Is Audit Defense included?", a: "Yes, we handle all correspondence with the CRA on your behalf." }
         ]
     },
     USA: {
@@ -32,10 +51,24 @@ const TAX_DATA = {
         text: "text-blue-600",
         symbol: "$",
         standardDeduction: "$16,100",
-        timeline: ["Jan 20: Filing Opens", "Apr 15: Deadline"],
         benefits: [
             { title: "OBBB Credits", desc: "Up to $10k for EV loans.", icon: <Zap /> },
             { title: "HSA Savings", desc: "Tax-free health savings.", icon: <ShieldCheck /> }
+        ],
+        services: [
+            { title: "IRS Audit Defense", desc: "Full representation before the IRS if your 1040 is challenged.", icon: <Landmark size={32} /> },
+            { title: "Federal & State", desc: "Unified filing for Federal and all 50 State returns in one go.", icon: <Globe size={32} /> },
+            { title: "1099 & W2 Reconciliation", desc: "Complex matching for freelancers and full-time employees.", icon: <FileText size={32} /> }
+        ],
+        process: [
+            { title: "Upload W2/1099", desc: "Import your wage and income statements securely.", icon: <FileText size={40} /> },
+            { title: "Deduction Finder", desc: "Our AI scans for itemized deductions vs standard deduction.", icon: <User size={40} /> },
+            { title: "E-File Direct", desc: "Submitted directly to the IRS and State agencies.", icon: <CheckCircle size={40} /> }
+        ],
+        faqs: [
+            { q: "Do you handle State taxes?", a: "Yes, we file for all 50 states, including complex multi-state filings." },
+            { q: "Can I file an extension?", a: "Yes, we can file Form 4868 instantly to give you until October 15th." },
+            { q: "Is my data secure?", a: "We use bank-level AES-256 encryption and are IRS e-file authorized." }
         ]
     },
     India: {
@@ -46,19 +79,27 @@ const TAX_DATA = {
         text: "text-orange-500",
         symbol: "₹",
         standardDeduction: "₹75,000",
-        timeline: ["Apr 01: FY Starts", "July 31: ITR Deadline"],
         benefits: [
             { title: "87A Rebate", desc: "Zero tax up to ₹12.75L income.", icon: <Zap /> },
             { title: "DTAA Relief", desc: "Avoid double tax on foreign pay.", icon: <Globe /> }
+        ],
+        services: [
+            { title: "CA Assisted Filing", desc: "Every return is verified by a Chartered Accountant before submission.", icon: <Award size={32} /> },
+            { title: "80C & 80D Planning", desc: "Maximize deductions via LIC, PPF, ELSS, and Medical Insurance.", icon: <BookOpen size={32} /> },
+            { title: "Notice Management", desc: "We handle Section 143(1) intimations and defective return notices.", icon: <ShieldCheck size={32} /> }
+        ],
+        process: [
+            { title: "Upload Form-16", desc: "Just upload your PDF. We extract salary and TDS details.", icon: <FileText size={40} /> },
+            { title: "AIS/TIS Check", desc: "We cross-verify data with the Annual Information Statement.", icon: <User size={40} /> },
+            { title: "ITR-V Ack", desc: "ITR filed instantly. We also help you e-Verify via Aadhaar.", icon: <CheckCircle size={40} /> }
+        ],
+        faqs: [
+            { q: "Which ITR form should I choose?", a: "Our system automatically selects ITR-1, 2, 3, or 4 based on your income sources." },
+            { q: "Can I claim HRA if I live with parents?", a: "Yes, we help you structure rent receipts correctly to claim HRA exemptions." },
+            { q: "What is the deadline?", a: "Usually July 31st. Late filing attracts penalties u/s 234F." }
         ]
     }
 };
-
-const FAQ_ITEMS = [
-    { q: "Is my data shared with government agencies?", a: "No. We only submit the final return after your explicit approval. Your draft data is encrypted." },
-    { q: "What if I get audited?", a: "Our 'Audit Defense' guarantee means we represent you for free if any questions arise from our filing." },
-    { q: "Can I file for previous years?", a: "Yes, our experts can access portals for up to 7 years of back-filing for refunds." },
-];
 
 export default function TaxPage() {
     const [country, setCountry] = useState<keyof typeof TAX_DATA>('Canada');
@@ -152,7 +193,7 @@ export default function TaxPage() {
     // --- 4. HANDLER: CONTACT FORM ---
     const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!stateManual) return; // Block submission if no state
+        if (!stateManual) return; 
 
         setFormStatus('sending');
         
@@ -217,7 +258,6 @@ export default function TaxPage() {
                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${active.color} bg-opacity-10 ${active.text}`}>
                             <Star size={12} /> #1 Rated in {active.name}
                         </div>
-                        {/* Responsive Font Size */}
                         <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tighter">
                             The {active.name} <br /><span className={active.text}>Tax Advantage.</span>
                         </h1>
@@ -245,7 +285,7 @@ export default function TaxPage() {
                     </div>
                 </section>
 
-                {/* HOW IT WORKS */}
+                {/* DYNAMIC HOW IT WORKS */}
                 <section>
                     <div className="text-center mb-16 space-y-4">
                         <h2 className="text-3xl md:text-4xl font-black tracking-tighter">Zero Friction Filing.</h2>
@@ -253,31 +293,21 @@ export default function TaxPage() {
                     </div>
                     <div className="grid md:grid-cols-3 gap-8 text-center relative">
                         <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-slate-100 -z-10"></div>
-                        <div className="bg-white p-6">
-                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
-                                <FileText size={40} />
+                        
+                        {/* Mapped Process Steps */}
+                        {active.process.map((step, i) => (
+                            <div key={i} className="bg-white p-6 animate-in slide-in-from-bottom-4" style={{ animationDelay: `${i * 100}ms` }}>
+                                <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
+                                    {step.icon}
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">{i + 1}. {step.title}</h3>
+                                <p className="text-slate-500 text-sm">{step.desc}</p>
                             </div>
-                            <h3 className="text-xl font-bold mb-2">1. Upload Docs</h3>
-                            <p className="text-slate-500 text-sm">Snap photos of your T4/W2/Form-16. Our AI extracts the data instantly.</p>
-                        </div>
-                        <div className="bg-white p-6">
-                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
-                                <User size={40} />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">2. Expert Review</h3>
-                            <p className="text-slate-500 text-sm">A real human CPA reviews your file to maximize deductions.</p>
-                        </div>
-                        <div className="bg-white p-6">
-                            <div className={`w-24 h-24 mx-auto ${active.color} rounded-full flex items-center justify-center text-white shadow-xl mb-6`}>
-                                <CheckCircle size={40} />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">3. Filed & Done</h3>
-                            <p className="text-slate-500 text-sm">We file directly with the gov. You get the confirmation instantly.</p>
-                        </div>
+                        ))}
                     </div>
                 </section>
 
-                {/* --- BOOKING WIDGET (ADDED SCROLL MARGIN) --- */}
+                {/* BOOKING WIDGET */}
                 <section id="booking" className="scroll-mt-32 bg-slate-900 text-white rounded-[3rem] p-8 md:p-12 overflow-hidden relative">
                     <div className={`absolute top-0 right-0 w-96 h-96 ${active.color} opacity-20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2`}></div>
 
@@ -342,32 +372,30 @@ export default function TaxPage() {
                     </div>
                 </section>
 
-                {/* WHY US SECTION */}
+                {/* DYNAMIC WHY US SECTION */}
                 <section className="py-12">
+                    <div className="text-center mb-12">
+                         <h2 className="text-3xl font-black tracking-tighter">Why Choose {active.name}?</h2>
+                    </div>
                     <div className="grid md:grid-cols-3 gap-8">
-                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-blue-600"><ShieldCheck size={32} /></div>
-                            <h3 className="text-xl font-bold mb-3">Bank-Grade Security</h3>
-                            <p className="text-slate-500 leading-relaxed">Your data is encrypted with AES-256 bit protocols. We never share your information.</p>
-                        </div>
-                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-green-600"><Clock size={32} /></div>
-                            <h3 className="text-xl font-bold mb-3">Rapid Processing</h3>
-                            <p className="text-slate-500 leading-relaxed">Automated systems check for errors instantly, ensuring your filing is submitted without delays.</p>
-                        </div>
-                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 text-purple-600"><Award size={32} /></div>
-                            <h3 className="text-xl font-bold mb-3">Certified Experts</h3>
-                            <p className="text-slate-500 leading-relaxed">Reviewed by chartered accountants specific to Canadian, US, and Indian laws.</p>
-                        </div>
+                        {/* Mapped Services */}
+                        {active.services.map((service, i) => (
+                            <div key={i} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow animate-in fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+                                <div className={`w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 ${active.text}`}>
+                                    {service.icon}
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">{service.title}</h3>
+                                <p className="text-slate-500 leading-relaxed">{service.desc}</p>
+                            </div>
+                        ))}
                     </div>
                 </section>
 
-                {/* FAQ SECTION */}
+                {/* DYNAMIC FAQ SECTION */}
                 <section className="max-w-3xl mx-auto">
-                    <h2 className="text-3xl font-black text-center mb-8">Common Questions</h2>
+                    <h2 className="text-3xl font-black text-center mb-8">Common Questions in {active.name}</h2>
                     <div className="space-y-4">
-                        {FAQ_ITEMS.map((item, i) => (
+                        {active.faqs.map((item, i) => (
                             <div key={i} className="border border-slate-200 rounded-2xl overflow-hidden">
                                 <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex justify-between items-center p-6 bg-slate-50 font-bold text-left hover:bg-slate-100 transition-colors">
                                     {item.q}
@@ -379,7 +407,7 @@ export default function TaxPage() {
                     </div>
                 </section>
 
-                {/* --- CONTACT FORM SECTION (ADDED SCROLL MARGIN) --- */}
+                {/* CONTACT FORM SECTION */}
                 <section id="callback" className="scroll-mt-32 bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-2xl grid lg:grid-cols-2 gap-16 relative overflow-hidden">
                     <div className="space-y-8 relative z-10">
                         <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-slate-900">Expert Review.</h2>
@@ -394,7 +422,7 @@ export default function TaxPage() {
                             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Support & Inquiries</p>
                             <div className="flex items-center gap-3 text-lg font-bold">
                                 <Mail className="text-slate-900" size={24} />
-                                <a href="mailto:support@taxglobal.com" className="hover:text-blue-600 transition-colors">support@taxglobal.com</a>
+                                <a href="mailto:info@tprcs.com" className="hover:text-blue-600 transition-colors">info@tprcs.com</a>
                             </div>
                         </div>
                     </div>
@@ -419,7 +447,7 @@ export default function TaxPage() {
                                              onChange={(e) => {
                                                  setCountry(e.target.value as keyof typeof TAX_DATA);
                                                  setPincode(''); 
-                                                 setStateManual(''); // Clear state on country change
+                                                 setStateManual('');
                                              }}
                                              className="bg-white border border-slate-200 text-slate-900 font-bold py-2 px-4 pr-8 rounded-lg outline-none focus:border-slate-900 appearance-none cursor-pointer"
                                          >
@@ -456,7 +484,7 @@ export default function TaxPage() {
                                         {isLocLoading && <div className="absolute right-4 top-5 animate-spin text-red-500"><MapPin size={20} /></div>}
                                     </div>
                                     
-                                    {/* --- READ-ONLY STATE FIELD --- */}
+                                    {/* READ-ONLY STATE */}
                                     <div className="relative">
                                         <input 
                                             value={stateManual} 
@@ -494,7 +522,7 @@ export default function TaxPage() {
                 <div className="max-w-7xl mx-auto px-6 space-y-6">
                     <div className="text-2xl font-black italic tracking-tighter text-slate-300">TaxGlobal</div>
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
-                        © 2026 GlobalTax AI. Certified Secure Filing Infrastructure.
+                        © 2026 GlobalTax. Certified Secure Filing Infrastructure.
                     </p>
                     <div className="flex justify-center gap-6 text-sm text-slate-400 font-medium">
                         <a href="#" className="hover:text-slate-600">Privacy Policy</a>
