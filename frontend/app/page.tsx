@@ -1,505 +1,276 @@
-'use client';
-
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+"use client";
+import { useState, useEffect } from 'react';
 import {
-  Menu, X, CheckCircle, Calculator, FileText, ArrowRight,
-  Phone, Mail, MapPin, Award, Quote, Star, Send, Loader2,
-  Building2, TrendingUp, ShieldCheck
+    CheckCircle, Globe, FileText, Calculator, TrendingUp,
+    ArrowRight, ShieldCheck, Landmark, DollarSign,
+    Mail, Phone, Send, Zap, Lock, Server, Clock,
+    PieChart, HardDrive, MapPin, Shield, Gift, Hash
 } from 'lucide-react';
 
-// --- Navbar Component ---
-const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const scrollToSection = (id: string) => {
-    setIsOpen(false);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+const TAX_DATA = {
+    Canada: {
+        name: "Canada",
+        apiCode: "ca",
+        phoneCode: "+1",
+        color: "bg-red-600",
+        text: "text-red-600",
+        symbol: "$",
+        standardDeduction: "$16,452",
+        timeline: ["Feb 24: Netfile Opens", "Apr 30: Deadline"],
+        benefits: [
+            { title: "RRSP Room", desc: "Reduce tax with contributions.", icon: <PieChart /> },
+            { title: "FHSA Access", desc: "Tax-free savings for buyers.", icon: <HardDrive /> }
+        ]
+    },
+    USA: {
+        name: "United States",
+        apiCode: "us",
+        phoneCode: "+1",
+        color: "bg-blue-600",
+        text: "text-blue-600",
+        symbol: "$",
+        standardDeduction: "$16,100",
+        timeline: ["Jan 20: Filing Opens", "Apr 15: Deadline"],
+        benefits: [
+            { title: "OBBB Credits", desc: "Up to $10k for EV loans.", icon: <Zap /> },
+            { title: "HSA Savings", desc: "Tax-free health savings.", icon: <ShieldCheck /> }
+        ]
+    },
+    India: {
+        name: "India",
+        apiCode: "in",
+        phoneCode: "+91",
+        color: "bg-orange-500",
+        text: "text-orange-500",
+        symbol: "₹",
+        standardDeduction: "₹75,000",
+        timeline: ["Apr 01: FY Starts", "July 31: ITR Deadline"],
+        benefits: [
+            { title: "87A Rebate", desc: "Zero tax up to ₹12.75L income.", icon: <Zap /> },
+            { title: "DTAA Relief", desc: "Avoid double tax on foreign pay.", icon: <Globe /> }
+        ]
     }
-  };
-
-  const navLinks = [
-    { name: 'Home', id: 'home' },
-    { name: 'Services', id: 'services' },
-    { name: 'About', id: 'about' },
-    { name: 'Contact', id: 'contact' },
-  ];
-
-  return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-
-          {/* Logo */}
-          <div
-            onClick={() => scrollToSection('home')}
-            className="flex-shrink-0 flex items-center gap-2 cursor-pointer group"
-          >
-            <div className="p-2 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:bg-blue-700 transition">
-              <span className="text-white font-bold text-xl">TPR</span>
-            </div>
-            <span className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
-              CS<span className="text-blue-600">.</span>
-            </span>
-          </div>
-
-          {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-8 items-center">
-            {navLinks.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => scrollToSection(item.id)}
-                className="text-slate-600 hover:text-blue-600 font-medium text-sm transition-colors"
-              >
-                {item.name}
-              </button>
-            ))}
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 text-sm"
-            >
-              Request Quote
-            </button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 p-2">
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Dropdown */}
-      {isOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-xl">
-          <div className="px-4 pt-2 pb-6 space-y-2 flex flex-col">
-            {navLinks.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => scrollToSection(item.id)}
-                className="block w-full text-left px-3 py-3 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
-              >
-                {item.name}
-              </button>
-            ))}
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="w-full mt-4 bg-blue-600 text-white px-5 py-3 rounded-lg font-medium"
-            >
-              Request Quote
-            </button>
-          </div>
-        </div>
-      )}
-    </nav>
-  );
 };
 
-// --- Hero Component ---
-const Hero = () => (
-  <section id="home" className="relative bg-slate-900 py-24 md:py-32 overflow-hidden">
-    <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-900/20 blur-3xl rounded-full translate-x-1/3 -translate-y-1/4"></div>
-    <div className="absolute bottom-0 left-0 w-1/3 h-full bg-indigo-900/20 blur-3xl rounded-full -translate-x-1/4 translate-y-1/4"></div>
+export default function TaxPage() {
+    const [country, setCountry] = useState<keyof typeof TAX_DATA>('Canada');
+    const [income, setIncome] = useState<number>(75000);
+    const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        <span className="inline-block py-1 px-3 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-semibold mb-6 tracking-wide">
-          TPR CS CLOUD ACCOUNTING
-        </span>
+    const [pincode, setPincode] = useState('');
+    const [stateManual, setStateManual] = useState('');
+    const [referral, setReferral] = useState('');
+    const [phone, setPhone] = useState('');
+    const [isLocLoading, setIsLocLoading] = useState(false);
 
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-8 leading-tight">
-          Accounting & Tax Help To <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
-            Keep You Financially Stable
-          </span>
-        </h1>
+    const active = TAX_DATA[country];
 
-        <p className="max-w-2xl mx-auto text-lg text-slate-300 mb-10 leading-relaxed">
-          We are committed to easing your financial burdens by offering streamlined accounting and tax services.
-          Expert filing for Individuals, Freelancers, and Corporates.
-        </p>
+    useEffect(() => {
+        const fetchLocation = async () => {
+            const cleanPin = pincode.replace(/\s/g, "").toUpperCase();
+            const isCanadaTrigger = country === 'Canada' && cleanPin.length === 3;
+            const isUSATrigger = country === 'USA' && cleanPin.length === 5;
+            const isIndiaTrigger = country === 'India' && cleanPin.length === 6;
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
-            File My Taxes <ArrowRight size={18} />
-          </button>
-          <button onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-xl font-bold text-lg transition border border-white/10">
-            Explore Services
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  </section>
-);
+            if (isCanadaTrigger || isUSATrigger || isIndiaTrigger) {
+                setIsLocLoading(true);
+                try {
+                    let url = country === 'India'
+                        ? `https://api.postalpincode.in/pincode/${cleanPin}`
+                        : `https://api.zippopotam.us/${active.apiCode}/${cleanPin}`;
 
-// --- About Section ---
-const About = () => (
-  <section id="about" className="py-20 bg-white border-b border-slate-50">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid md:grid-cols-2 gap-12 items-center">
-        <div>
-          <h2 className="text-blue-600 font-bold tracking-wider uppercase mb-2 text-sm">About Us</h2>
-          <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Who We Are?</h3>
-          <p className="text-slate-600 leading-relaxed mb-6">
-            Cloud Accounting & Tax Services Inc. | Tax Filing TPRCS is a full-scale tax and accounting firm based in Guntur. Our comprehensive cloud accounting services make your life easier.
-          </p>
-          <p className="text-slate-600 leading-relaxed">
-            Our company leverages technology and the expertise of our vetted financial experts to ease your financial management troubles. Whether you are a salaried employee or a Pvt Ltd company, we have you covered.
-          </p>
-        </div>
-        <div className="relative">
-          <div className="aspect-square rounded-2xl bg-slate-100 overflow-hidden relative shadow-xl">
-            {/* Using standard img tag for ease of use without config */}
-            <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800" alt="About TPRCS" className="object-cover w-full h-full" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-);
+                    const res = await fetch(url);
+                    const data = await res.json();
 
-// --- Services Cards ---
-const SegmentCard = ({ title, desc, icon: Icon, points, badge }: any) => (
-  <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 group h-full">
-    <div className="flex justify-between items-start mb-6">
-      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
-        <Icon size={24} />
-      </div>
-      {badge && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">{badge}</span>}
-    </div>
+                    if (country === 'India' && data[0].Status === "Success") {
+                        setStateManual(data[0].PostOffice[0].State);
+                    } else if (country !== 'India' && res.ok) {
+                        setStateManual(data.places[0].state);
+                    }
+                } catch (e) { console.error("Location lookup failed"); }
+                finally { setIsLocLoading(false); }
+            }
+        };
+        fetchLocation();
+    }, [pincode, country]);
 
-    <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
-    <p className="text-slate-600 text-sm mb-6 leading-relaxed min-h-[60px]">{desc}</p>
+    const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setFormStatus('sending');
+        const formData = new FormData(e.currentTarget);
 
-    <ul className="space-y-3">
-      {points.map((pt: string, i: number) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-          <CheckCircle size={16} className="text-blue-500 mt-0.5 shrink-0" />
-          <span>{pt}</span>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: `${active.phoneCode} ${phone}`, // Combines country code with number
+            message: formData.get('message'),
+            country: country,
+            pincode: pincode,
+            state: stateManual,
+            referral: referral,
+            subject: formData.get('subject')
+        };
 
-const Services = () => (
-  <section id="services" className="py-20 bg-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Our Services</h2>
-        <p className="text-slate-600">Expert financial management for individuals and businesses.</p>
-      </div>
+        try {
+            const res = await fetch('https://rajabackend.srikrishnatechhub.com/request-callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) setFormStatus('success'); else setFormStatus('error');
+        } catch { setFormStatus('error'); }
+    };
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <SegmentCard
-          title="Personal Tax (ITR)"
-          desc="Maximizing refunds for salaried individuals and freelancers. We handle Form-16 analysis and capital gains."
-          icon={FileText}
-          badge="ITR-1 to ITR-4"
-          points={[
-            'Personal Income Tax Filing',
-            'Capital Gains (Stocks/Crypto)',
-            'Tax Refund Optimization',
-            'Notice Management'
-          ]}
-        />
-        <SegmentCard
-          title="Business & GST"
-          desc="Complete compliance for small businesses and shop owners. Monthly GST filing made simple."
-          icon={Calculator}
-          points={[
-            'Monthly GST Filing',
-            'GSTR-1 & GSTR-3B',
-            'Balance Sheet Preparation',
-            'MSME Registration'
-          ]}
-        />
-        <SegmentCard
-          title="Corporate Services"
-          desc="End-to-end solutions for Pvt Ltd and LLP companies including incorporation and audit support."
-          icon={Building2}
-          points={[
-            'Company Incorporation',
-            'Corporate Tax Filing',
-            'ROC Compliances',
-            'Payroll Management'
-          ]}
-        />
-      </div>
-    </div>
-  </section>
-);
-
-// --- Contact Form Section ---
-const Contact = () => {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    service: 'Personal Tax',
-    message: ''
-  });
-
-  const handleChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setStatus('loading');
-
-    try {
-      const response = await fetch('https://rajabackend.srikrishnatechhub.com/request-callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        setStatus('success');
-        // Optional: Reset form data if you want them to be able to send another later
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          service: 'Personal Tax',
-          message: ''
-        });
-      } else {
-        setStatus('error');
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      setStatus('error');
-    }
-  };
-
-  return (
-    <section id="contact" className="py-20 bg-slate-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-16">
-
-          {/* Contact Info Side - Unchanged */}
-          <div>
-            <h2 className="text-3xl font-bold mb-6">Get in Touch</h2>
-            <p className="text-slate-300 mb-8 leading-relaxed">
-              Ready to file your taxes or need a consultation? Fill out the form and our team will contact you within 24 hours.
-            </p>
-
-            <div className="space-y-8">
-              {/* <div className="flex items-start gap-4">
-                <div className="p-4 bg-slate-800 rounded-xl text-blue-400">
-                  <MapPin size={28} />
-                </div>
-                {/* <div>
-                  <h3 className="font-bold text-xl mb-1">Visit Us</h3>
-                  <p className="text-slate-400">TPR CS, Brodipet / Koretapadu<br />Guntur, Andhra Pradesh</p>
-                </div> 
-              </div> */}
-
-              <div className="flex items-start gap-4">
-                <div className="p-4 bg-slate-800 rounded-xl text-blue-400">
-                  <Mail size={28} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl mb-1">Email Us</h3>
-                  <p className="text-slate-400">info@tprcs.com</p>
-                </div>
-              </div>
-
-              {/* <div className="flex items-start gap-4">
-                <div className="p-4 bg-slate-800 rounded-xl text-blue-400">
-                  <Phone size={28} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl mb-1">Call Us</h3>
-                  <p className="text-slate-400">+91 99999 99999</p>
-                </div>
-              </div> */}
-            </div>
-          </div>
-
-          {/* Contact Form Card */}
-          <div className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl min-h-[500px] flex flex-col justify-center">
-
-            {/* SUCCESS STATE: Shows big checkmark instead of form */}
-            {status === 'success' ? (
-              <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle size={48} className="text-green-600" />
-                </div>
-                <h3 className="text-3xl font-bold text-slate-900 mb-4">Request Received!</h3>
-                <p className="text-slate-600 text-lg mb-8 leading-relaxed">
-                  Thank you for contacting <strong>TPR CS</strong>. <br />
-                  Our tax experts have received your details and will call you shortly.
-                </p>
-                <button
-                  onClick={() => setStatus('idle')}
-                  className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition"
-                >
-                  Send Another Message
-                </button>
-              </div>
-            ) : (
-              /* NORMAL FORM STATE */
-              <>
-                <h3 className="text-2xl font-bold mb-6">Send a Message</h3>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                      <input
-                        name="name" type="text" required
-                        value={formData.name}
-                        className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                        onChange={handleChange}
-                        placeholder="John Doe"
-                      />
+    return (
+        <div className="min-h-screen bg-white text-slate-900 selection:bg-red-100">
+            <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 py-4 px-6">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <div className="text-2xl font-black italic tracking-tighter">TaxGlobal.ai</div>
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        {Object.keys(TAX_DATA).map((c) => (
+                            <button key={c} onClick={() => { setCountry(c as any); setPincode(''); setStateManual(''); setPhone(''); }}
+                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${country === c ? `${active.color} text-white shadow-md` : "text-slate-500 hover:text-slate-800"}`}>
+                                {c}
+                            </button>
+                        ))}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                      <input
-                        name="phone" type="tel" required
-                        value={formData.phone}
-                        className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                        onChange={handleChange}
-                        placeholder="+91 99999..."
-                      />
+                </div>
+            </nav>
+
+            <main className="max-w-7xl mx-auto px-6 py-12 space-y-24">
+
+                {/* Hero & Estimate */}
+                <section className="grid lg:grid-cols-2 gap-12 items-center">
+                    <div className="space-y-6">
+                        <h1 className="text-7xl font-black leading-tight tracking-tighter">
+                            The {active.name} <br /><span className={active.text}>Tax Advantage.</span>
+                        </h1>
+                        <p className="text-xl text-slate-500 max-w-lg leading-relaxed">Smart 2026 filing system. Automatically detects your provincial/state benefits based on location.</p>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                    <input
-                      name="email" type="email" required
-                      value={formData.email}
-                      className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                      onChange={handleChange}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Service Required</label>
-                    <select
-                      name="service"
-                      value={formData.service}
-                      className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                      onChange={handleChange}
-                    >
-                      <option>Personal Tax Filing (ITR)</option>
-                      <option>Corporate Tax / GST</option>
-                      <option>Bookkeeping</option>
-                      <option>New Company Registration</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
-                    <textarea
-                      name="message" rows={4}
-                      value={formData.message}
-                      className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                      onChange={handleChange}
-                      placeholder="Tell us about your requirements..."
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={status === 'loading'}
-                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {status === 'loading' ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Submit Request</>}
-                  </button>
-
-                  {status === 'error' && (
-                    <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center">
-                      Something went wrong. Please try again or call us directly.
+                    <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-slate-100 shadow-xl">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2"><Calculator size={18} /> Instant Savings Estimate</h3>
+                        <input type="number" value={income} onChange={(e) => setIncome(Number(e.target.value))}
+                            className="w-full bg-white border-0 rounded-2xl py-6 px-6 text-4xl font-black shadow-inner outline-none focus:ring-2 focus:ring-red-500" />
+                        <div className={`mt-6 p-6 ${active.color} text-white rounded-3xl shadow-lg`}>
+                            <p className="opacity-80 text-sm font-bold">Projected {active.name} Refund</p>
+                            <p className="text-4xl font-black">{active.symbol}{(income * 0.15).toLocaleString()}</p>
+                        </div>
                     </div>
-                  )}
-                </form>
-              </>
-            )}
-          </div>
+                </section>
+
+                {/* Feature Map */}
+                <section className="grid md:grid-cols-3 gap-8">
+                    <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] flex flex-col justify-between">
+                        <h3 className="text-3xl font-bold italic">Secure. Fast. Trusted.</h3>
+                        <p className="text-slate-400">Multi-factor encryption for your {active.name} tax documents.</p>
+                    </div>
+                    {active.benefits.map((b, i) => (
+                        <div key={i} className="bg-white p-10 rounded-[2.5rem] border-2 border-slate-50 shadow-sm hover:shadow-lg transition-all">
+                            <div className={`${active.text} mb-6 p-4 bg-slate-50 rounded-2xl w-fit`}>{b.icon}</div>
+                            <h4 className="text-2xl font-bold mb-2">{b.title}</h4>
+                            <p className="text-slate-500 leading-relaxed">{b.desc}</p>
+                        </div>
+                    ))}
+                </section>
+
+                {/* Dynamic Contact Form */}
+                <section id="callback" className="bg-white rounded-[3rem] p-12 border border-slate-100 shadow-2xl grid lg:grid-cols-2 gap-16 relative overflow-hidden">
+                    <div className="space-y-8 relative z-10">
+                        <h2 className="text-5xl font-black italic tracking-tighter text-slate-900">Expert Review.</h2>
+                        <p className="text-xl text-slate-500 leading-relaxed">Request a callback. Your country is locked to <b>{active.name}</b>.</p>
+                        <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+                            <div className="flex items-center gap-4 text-slate-600 font-bold tracking-tight"><Globe className="text-blue-500" size={20} /> Region: {active.name}</div>
+                            <div className="flex items-center gap-4 text-slate-600 font-bold tracking-tight"><ShieldCheck className="text-blue-500" size={20} /> AES-256 Bit Encryption</div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-10 rounded-[3rem] shadow-inner relative z-10">
+                        {formStatus === 'success' ? (
+                            <div className="text-center py-16 animate-in fade-in zoom-in">
+                                <CheckCircle size={80} className="text-green-500 mx-auto mb-6" />
+                                <h3 className="text-3xl font-bold">Request Sent!</h3>
+                                <p className="text-slate-500 font-medium mt-2">A specialist for {stateManual || "your region"} will call you at {active.phoneCode} {phone}.</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleContactSubmit} className="space-y-5">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <input name="name" required placeholder="Full Name" className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-medium" />
+                                    <input name="email" type="email" required placeholder="Email Address" className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-medium" />
+                                </div>
+
+                                {/* Mandatory Phone Field with Auto Country Code */}
+                                <div className="relative group">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-slate-200 pr-3 h-2/3 pointer-events-none">
+                                        <Phone size={18} className="text-slate-400" />
+                                        <span className="font-bold text-slate-600">{active.phoneCode}</span>
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        required
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} // Numeric only
+                                        placeholder="Phone Number (Required)"
+                                        className="w-full p-5 pl-24 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500 font-bold tracking-widest"
+                                    />
+                                </div>
+
+                                {/* Location Input Group */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={pincode}
+                                            onChange={(e) => setPincode(e.target.value.toUpperCase())}
+                                            placeholder={country === 'India' ? "PIN Code" : country === 'Canada' ? "3-Char Postal" : "Zip Code"}
+                                            className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-transparent focus:border-red-500 shadow-sm font-bold uppercase"
+                                        />
+                                        {isLocLoading && <div className="absolute right-4 top-5 animate-spin text-red-500"><MapPin size={20} /></div>}
+                                    </div>
+                                    <input
+                                        value={stateManual}
+                                        onChange={(e) => setStateManual(e.target.value)}
+                                        placeholder="State/Province"
+                                        className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-transparent focus:border-red-500 shadow-sm font-bold"
+                                    />
+                                </div>
+
+                                {/* Fixed Country & Optional Referral */}
+                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                    <div className="relative">
+                                        <label className="absolute -top-6 left-2 text-[10px] font-bold text-slate-400 uppercase">Selected Country</label>
+                                        <input
+                                            readOnly
+                                            value={active.name}
+                                            className="w-full p-5 bg-slate-200/50 rounded-2xl outline-none text-slate-500 font-bold cursor-not-allowed border-2 border-slate-100"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="absolute -top-6 left-2 text-[10px] font-bold text-slate-400 uppercase italic">Referral (Optional)</label>
+                                        <input
+                                            name="referral"
+                                            value={referral}
+                                            onChange={(e) => setReferral(e.target.value)}
+                                            placeholder="Code"
+                                            className="w-full p-5 bg-white rounded-2xl outline-none border-2 border-dashed border-slate-200 shadow-sm font-medium"
+                                        />
+                                    </div>
+                                </div>
+
+                                <textarea name="message" required rows={3} placeholder="Tell us about your tax situation..." className="w-full p-5 bg-white rounded-2xl outline-none shadow-sm focus:ring-2 focus:ring-red-500"></textarea>
+
+                                <button disabled={formStatus === 'sending'} className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl disabled:opacity-50">
+                                    {formStatus === 'sending' ? "Syncing..." : "Request Callback"}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </section>
+            </main>
+
+            <footer className="py-20 text-center border-t bg-slate-50 text-slate-400 font-bold uppercase tracking-widest text-xs">
+                © 2026 GlobalTax AI. Certified Secure Filing Infrastructure.
+            </footer>
         </div>
-      </div>
-    </section>
-  );
-};
-
-// --- Testimonials ---
-const Testimonials = () => (
-  <section className="py-24 bg-slate-50">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 className="text-3xl font-bold text-center text-slate-900 mb-16">What People Say About Us</h2>
-      <div className="grid md:grid-cols-3 gap-8">
-        {[
-          {
-            name: "Ravi Teja",
-            role: "Software Engineer",
-            text: "I was worried about my tax filing this year due to multiple job switches. TPR CS handled everything smoothly. Highly recommended!"
-          },
-          {
-            name: "Suresh Reddy",
-            role: "Business Owner, Guntur",
-            text: "They handle my monthly GST filings and annual returns. I can focus on my business knowing my compliance is in safe hands."
-          },
-          {
-            name: "Anitha K",
-            role: "Freelancer",
-            text: "Best service for freelancers. They helped me save taxes legally and explained the entire process clearly."
-          }
-        ].map((testimonial, i) => (
-          <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-            <Quote className="text-blue-200 mb-4" size={40} />
-            <p className="text-slate-600 mb-6 italic">"{testimonial.text}"</p>
-            <div>
-              <p className="font-bold text-slate-900">{testimonial.name}</p>
-              <p className="text-sm text-slate-500">{testimonial.role}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// --- Footer ---
-const Footer = () => (
-  <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-      <p>&copy; {new Date().getFullYear()} TPR CS (Tech Professionals Career Solutions). All rights reserved.</p>
-      <div className="mt-4 space-x-4">
-        <a href="#" className="hover:text-white transition">Privacy Policy</a>
-        <a href="#" className="hover:text-white transition">Terms of Service</a>
-      </div>
-    </div>
-  </footer>
-);
-
-// --- Main Page Export ---
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <Navbar />
-      <Hero />
-      <About />
-      <Services />
-      <Testimonials />
-      <Contact />
-      <Footer />
-    </main>
-  );
+    );
 }
